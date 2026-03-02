@@ -5,6 +5,12 @@ from dotenv import load_dotenv
 
 
 def _get_api_key():
+    try:
+        import streamlit as st
+        if "OPENAI_API_KEY" in st.secrets:
+            return st.secrets["OPENAI_API_KEY"]
+    except Exception:
+        pass
     load_dotenv(override=True)
     return os.getenv("OPENAI_API_KEY", "")
 
