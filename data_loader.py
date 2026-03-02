@@ -1,44 +1,26 @@
-"""
-Yorglass Finans - Veri Yukleme Modulu.
-
-Cok lokasyonlu SQLite sorgulari.
-Butce, siparis ve malzeme verilerini yukler.
-"""
 import sqlite3
 import pandas as pd
 
 
-# ============================
-# VERITABANI BAGLANTISI
-# ============================
-
 def connect_db(db_path):
-    """SQLite veritabanina baglan."""
     try:
         conn = sqlite3.connect(db_path)
         return conn, None
     except Exception as e:
-        return None, f"Veritabani baglantisi basarisiz: {e}"
+        return None, f"Veritabanı bağlantısı başarısız: {e}"
 
-
-# ============================
-# LOOKUP SORGULARI
-# ============================
 
 def get_uretim_yerleri(conn):
-    """Tum uretim yerlerini dondur."""
     query = "SELECT id, kod, ad FROM uretim_yerleri ORDER BY sira"
     return pd.read_sql_query(query, conn)
 
 
 def get_departmanlar(conn):
-    """Tum departmanlari dondur."""
     query = "SELECT id, kod, ad FROM departmanlar"
     return pd.read_sql_query(query, conn)
 
 
 def get_uretim_yeri_departmanlar(conn, yer_id):
-    """Belirli bir uretim yerindeki departmanlari dondur."""
     query = """
         SELECT d.id, d.kod, d.ad
         FROM departmanlar d
@@ -49,15 +31,7 @@ def get_uretim_yeri_departmanlar(conn, yer_id):
     return pd.read_sql_query(query, conn, params=(yer_id,))
 
 
-# ============================
-# BUTCE SORGULARI
-# ============================
-
 def load_budget_data(conn, yer_id, dept_id, yil=2025):
-    """
-    Belirli uretim yeri + departman icin butce verisini yukle.
-    analysis.py uyumlu format: [Ay, Planlanan, Gerceklesen]
-    """
     query = """
         SELECT ay as Ay, planlanan_butce as Planlanan, gerceklesen_butce as Gerceklesen
         FROM butce
@@ -73,10 +47,6 @@ def load_budget_data(conn, yer_id, dept_id, yil=2025):
 
 
 def load_budget_monthly_detail(conn, yil=2025):
-    """
-    Tum lokasyon x departman icin AYLIK butce detayini yukle.
-    Chatbot icin: her ay, her departman, her lokasyonun planlanan/gerceklesen degerleri.
-    """
     query = """
         SELECT
             uy.ad as Uretim_Yeri,
@@ -94,10 +64,6 @@ def load_budget_monthly_detail(conn, yil=2025):
 
 
 def load_budget_matrix(conn, yil=2025):
-    """
-    Tum lokasyon x departman butce ozeti matrisini yukle.
-    Genel karsilastirma sayfasi icin kullanilir.
-    """
     query = """
         SELECT
             uy.kod as yer_kod,
@@ -116,15 +82,7 @@ def load_budget_matrix(conn, yil=2025):
     return pd.read_sql_query(query, conn, params=(yil,))
 
 
-# ============================
-# SIPARIS SORGULARI
-# ============================
-
 def load_order_data(conn, yer_id, dept_id):
-    """
-    Belirli uretim yeri + departman icin siparis verisini yukle.
-    analysis.py uyumlu format: [SiparisNo, Tarih, Tutar, Durum]
-    """
     query = """
         SELECT siparis_no as SiparisNo, tarih as Tarih, tutar as Tutar, durum as Durum
         FROM siparisler
@@ -141,7 +99,6 @@ def load_order_data(conn, yer_id, dept_id):
 
 
 def load_order_summary(conn):
-    """Tum lokasyon x departman siparis ozetini yukle."""
     query = """
         SELECT
             uy.kod as yer_kod,
@@ -159,12 +116,7 @@ def load_order_summary(conn):
     return pd.read_sql_query(query, conn)
 
 
-# ============================
-# MALZEME SORGULARI
-# ============================
-
 def load_mal_gruplari(conn):
-    """Mal gruplarini sorumlu departman bilgisiyle yukle."""
     query = """
         SELECT mg.id, mg.kod, mg.ad, d.kod as sorumlu_dept_kod, d.ad as sorumlu_dept_ad
         FROM mal_gruplari mg
@@ -174,7 +126,6 @@ def load_mal_gruplari(conn):
 
 
 def load_malzemeler(conn, mal_grubu_id=None):
-    """Malzemeleri yukle (opsiyonel mal grubu filtresi)."""
     if mal_grubu_id:
         query = """
             SELECT m.*, mg.ad as mal_grubu_ad
@@ -193,10 +144,6 @@ def load_malzemeler(conn, mal_grubu_id=None):
 
 
 def load_malzeme_hareketleri(conn, yer_id=None, dept_id=None):
-    """
-    Malzeme hareketlerini yukle.
-    Opsiyonel filtre: uretim yeri ve/veya departman.
-    """
     query = """
         SELECT
             mh.id,
@@ -237,10 +184,6 @@ def load_malzeme_hareketleri(conn, yer_id=None, dept_id=None):
 
 
 def load_cross_department_purchases(conn, yer_id=None, dept_id=None):
-    """
-    Departmanlar arasi alimlari tespit et.
-    Bir departmanin, baska departmanin sorumlu oldugu mal grubundan alim yapmasi.
-    """
     query = """
         SELECT
             uy.ad as uretim_yeri,
@@ -279,14 +222,6 @@ def load_cross_department_purchases(conn, yer_id=None, dept_id=None):
 
 
 def load_budget_with_orders_matrix(conn, yil=2025):
-    """
-    Butce matrisi + siparis verilerini birlestirerek efektif harcamayi hesapla.
-    Forecasting modulu icin kullanilir.
-
-    Dondurur: DataFrame [yer_kod, yer_ad, dept_kod, dept_ad, yer_id, dept_id,
-                          Toplam_Planlanan, Toplam_Gerceklesen, Toplam_Siparis, Efektif]
-    """
-    # Butce matrisi
     budget_query = """
         SELECT
             uy.id as yer_id,
@@ -306,7 +241,6 @@ def load_budget_with_orders_matrix(conn, yil=2025):
     """
     budget_df = pd.read_sql_query(budget_query, conn, params=(yil,))
 
-    # Siparis toplami
     order_query = """
         SELECT
             s.uretim_yeri_id as yer_id,
@@ -317,7 +251,6 @@ def load_budget_with_orders_matrix(conn, yil=2025):
     """
     order_df = pd.read_sql_query(order_query, conn)
 
-    # Birlestir
     merged = budget_df.merge(
         order_df, on=["yer_id", "dept_id"], how="left"
     )
@@ -328,7 +261,6 @@ def load_budget_with_orders_matrix(conn, yil=2025):
 
 
 def load_material_summary_by_group(conn, yer_id=None, dept_id=None):
-    """Mal grubuna gore malzeme harcama ozeti."""
     query = """
         SELECT
             mg.ad as Mal_Grubu,

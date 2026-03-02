@@ -1,8 +1,3 @@
-"""
-Yorglass Finans - Sektor Kiyas (Benchmark) Sayfasi.
-
-Yorglass'in sektordeki konumunu rakip firmalarla karsilastirir.
-"""
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
@@ -18,12 +13,11 @@ from components import format_currency
 from config import DB_PATH
 from styles import inject_custom_css, apply_chart_style
 
-st.set_page_config(page_title="Sektor Kiyas", page_icon="🏭", layout="wide")
+st.set_page_config(page_title="Sektör Kıyas", page_icon="🏭", layout="wide")
 inject_custom_css()
-st.title("🏭 Sektor Kiyas Analizi")
-st.markdown("Yorglass'in cam sektoru icerisindeki konumunu rakip firmalarla karsilastirin.")
+st.title("🏭 Sektör Kıyas Analizi")
+st.markdown("Yorglass'ın cam sektörü içerisindeki konumunu rakip firmalarla karşılaştırın.")
 
-# --- DB Baglantisi ---
 db_path = st.session_state.get("db_path", DB_PATH)
 yil = st.session_state.get("yil", 2025)
 
@@ -32,10 +26,9 @@ if err:
     st.error(err)
     st.stop()
 
-# --- Veri Yukle ---
 benchmark_data = load_benchmark_data()
 if not benchmark_data:
-    st.error("Benchmark verisi bulunamadi. `sample_data/sektor_benchmark.json` dosyasini kontrol edin.")
+    st.error("Benchmark verisi bulunamadı. `sample_data/sektor_benchmark.json` dosyasını kontrol edin.")
     conn.close()
     st.stop()
 
@@ -43,65 +36,57 @@ yorglass_metrics = calculate_yorglass_metrics(conn, yil)
 firms_df, dept_df, ranking_df, summary = compare_with_benchmarks(yorglass_metrics, benchmark_data)
 conn.close()
 
-# ============================
-# GENEL BAKIS KPI
-# ============================
-st.header("Genel Bakis")
+st.header("Genel Bakış")
 
 kcol1, kcol2, kcol3, kcol4 = st.columns(4)
 with kcol1:
     st.metric(
-        "Yorglass Fire Orani",
+        "Yorglass Fire Oranı",
         f"%{summary['yorglass_fire']*100:.1f}",
-        delta=f"{summary['fire_fark']*100:+.1f}% vs sektor",
+        delta=f"{summary['fire_fark']*100:+.1f}% vs sektör",
         delta_color="inverse",
     )
 with kcol2:
     st.metric(
-        "Sektor Ort. Fire Orani",
+        "Sektör Ort. Fire Oranı",
         f"%{summary['sektor_fire_ort']*100:.1f}",
     )
 with kcol3:
     st.metric(
         "Yorglass Birim Maliyet",
         f"{summary['yorglass_maliyet']:,.0f} TL/ton",
-        delta=f"{summary['maliyet_fark']:+,.0f} TL vs sektor",
+        delta=f"{summary['maliyet_fark']:+,.0f} TL vs sektör",
         delta_color="inverse",
     )
 with kcol4:
     st.metric(
-        "Sektor Ort. Birim Maliyet",
+        "Sektör Ort. Birim Maliyet",
         f"{summary['sektor_maliyet_ort']:,.0f} TL/ton",
     )
 
 kcol5, kcol6, kcol7, kcol8 = st.columns(4)
 with kcol5:
-    st.metric("Karsilastirilan Firma", summary["firma_sayisi"])
+    st.metric("Karşılaştırılan Firma", summary["firma_sayisi"])
 with kcol6:
     yorglass_kap = yorglass_metrics["kapasite_kullanim"]
     sektor_kap = firms_df[firms_df["Firma"] != "Yorglass"]["Kapasite_Kullanim"].mean()
     st.metric(
-        "Kapasite Kullanimi",
+        "Kapasite Kullanımı",
         f"%{yorglass_kap*100:.0f}",
-        delta=f"{(yorglass_kap - sektor_kap)*100:+.0f}% vs sektor",
+        delta=f"{(yorglass_kap - sektor_kap)*100:+.0f}% vs sektör",
         delta_color="normal",
     )
 with kcol7:
-    st.metric("Guclu Alanlar", f"{summary['guclu_alanlar']} metrik")
+    st.metric("Güçlü Alanlar", f"{summary['guclu_alanlar']} metrik")
 with kcol8:
-    st.metric("Gelistirilmeli Alanlar", f"{summary['gelistirilmeli_alanlar']} metrik")
+    st.metric("Geliştirilmeli Alanlar", f"{summary['gelistirilmeli_alanlar']} metrik")
 
 st.divider()
 
-# ============================
-# RADAR GRAFIGI
-# ============================
-st.header("Firma Performans Karsilastirmasi (Radar)")
+st.header("Firma Performans Karşılaştırması (Radar)")
 
-# Normalize metrikler (0-1 arasi, her metrik icin)
 radar_metrics = ["Fire_Orani", "Birim_Maliyet_Ton", "Kapasite_Kullanim", "ARGE_Oran", "Pazar_Payi"]
-radar_labels = ["Fire Orani\n(dusuk=iyi)", "Birim Maliyet\n(dusuk=iyi)", "Kapasite\nKullanimi", "AR-GE\nOrani", "Pazar\nPayi"]
-# Ters metrikler (dusuk olan daha iyi)
+radar_labels = ["Fire Oranı\n(düşük=iyi)", "Birim Maliyet\n(düşük=iyi)", "Kapasite\nKullanımı", "AR-GE\nOranı", "Pazar\nPayı"]
 inverse_metrics = {"Fire_Orani", "Birim_Maliyet_Ton"}
 
 fig_radar = go.Figure()
@@ -122,7 +107,7 @@ for _, row in firms_df.iterrows():
             norm_val = (row[metric] - col_min) / (col_max - col_min)
         values.append(round(norm_val, 3))
 
-    values.append(values[0])  # Kapatma
+    values.append(values[0])
     firma_adi = row["Firma"]
     line_width = 4 if firma_adi == "Yorglass" else 2
 
@@ -138,7 +123,7 @@ for _, row in firms_df.iterrows():
 apply_chart_style(fig_radar,
     polar=dict(radialaxis=dict(visible=True, range=[0, 1],
                gridcolor="rgba(255,255,255,0.1)")),
-    title="Normalize Performans Karsilastirmasi (1 = En Iyi)",
+    title="Normalize Performans Karşılaştırması (1 = En İyi)",
     height=550,
     legend=dict(orientation="h", yanchor="bottom", y=-0.15,
                 bgcolor="rgba(0,0,0,0)", borderwidth=0, font=dict(size=12)),
@@ -147,10 +132,7 @@ st.plotly_chart(fig_radar, use_container_width=True)
 
 st.divider()
 
-# ============================
-# FIRE ORANI KARSILASTIRMASI
-# ============================
-st.header("Fire Orani Karsilastirmasi")
+st.header("Fire Oranı Karşılaştırması")
 
 fire_sorted = firms_df.sort_values("Fire_Orani")
 bar_colors = ["#FF5722" if f == "Yorglass" else "#2196F3" for f in fire_sorted["Firma"]]
@@ -165,17 +147,14 @@ fig_fire = go.Figure(go.Bar(
 fig_fire.add_hline(
     y=firms_df[firms_df["Firma"] != "Yorglass"]["Fire_Orani"].mean() * 100,
     line_dash="dash", line_color="gray",
-    annotation_text="Sektor Ort.",
+    annotation_text="Sektör Ort.",
 )
 apply_chart_style(fig_fire,
-    title="Fire (Hurda/Iskarta) Orani Karsilastirmasi",
-    yaxis_title="Fire Orani (%)", height=400,
+    title="Fire (Hurda/Iskarta) Oranı Karşılaştırması",
+    yaxis_title="Fire Oranı (%)", height=400,
 )
 st.plotly_chart(fig_fire, use_container_width=True)
 
-# ============================
-# BIRIM MALIYET + KAPASITE
-# ============================
 bcol1, bcol2 = st.columns(2)
 
 with bcol1:
@@ -193,7 +172,7 @@ with bcol1:
     st.plotly_chart(fig_m, use_container_width=True)
 
 with bcol2:
-    st.subheader("Kapasite Kullanim Orani")
+    st.subheader("Kapasite Kullanım Oranı")
     kap_sorted = firms_df.sort_values("Kapasite_Kullanim", ascending=False)
     bar_colors_k = ["#FF5722" if f == "Yorglass" else "#FF9800" for f in kap_sorted["Firma"]]
     fig_k = go.Figure(go.Bar(
@@ -203,20 +182,17 @@ with bcol2:
         text=[f"%{v*100:.0f}" for v in kap_sorted["Kapasite_Kullanim"]],
         textposition="outside",
     ))
-    apply_chart_style(fig_k, yaxis_title="Kullanim (%)", height=400)
+    apply_chart_style(fig_k, yaxis_title="Kullanım (%)", height=400)
     st.plotly_chart(fig_k, use_container_width=True)
 
 st.divider()
 
-# ============================
-# DEPARTMAN DAGILIMI KARSILASTIRMASI
-# ============================
-st.header("Departman Butce Dagilimi Karsilastirmasi")
+st.header("Departman Bütçe Dağılımı Karşılaştırması")
 
 dept_melted = dept_df.melt(id_vars="Firma", var_name="Departman", value_name="Oran")
 fig_dept = px.bar(
     dept_melted, x="Firma", y="Oran", color="Departman",
-    title="Firma Bazli Departman Butce Dagilimi (%)",
+    title="Firma Bazlı Departman Bütçe Dağılımı (%)",
     text_auto=".0%",
     color_discrete_map={
         "Uretim": "#2196F3", "Bakim": "#FF9800", "Kalite": "#4CAF50",
@@ -228,9 +204,6 @@ st.plotly_chart(fig_dept, use_container_width=True)
 
 st.divider()
 
-# ============================
-# YORGLASS POZISYON ANALIZI
-# ============================
 st.header("Yorglass Pozisyon Analizi")
 
 for _, row in ranking_df.iterrows():
@@ -247,20 +220,17 @@ for _, row in ranking_df.iterrows():
 
     col_a, col_b = st.columns([3, 1])
     with col_a:
-        st.markdown(f"{icon} **{row['Metrik']}**: {sira}/{toplam} sirada "
-                    f"— Yorglass: `{row['Yorglass']}` | Sektor Ort: `{row['Sektor_Ortalama']}` "
-                    f"| En Iyi: `{row['En_Iyi']}` ({row['En_Iyi_Firma']})")
+        st.markdown(f"{icon} **{row['Metrik']}**: {sira}/{toplam} sırada "
+                    f"— Yorglass: `{row['Yorglass']}` | Sektör Ort: `{row['Sektor_Ortalama']}` "
+                    f"| En İyi: `{row['En_Iyi']}` ({row['En_Iyi_Firma']})")
     with col_b:
         st.markdown(f"**{durum}**")
 
 st.divider()
 
-# ============================
-# DETAY TABLOSU
-# ============================
 st.header("Detay Tablosu")
 
-with st.expander("Tum Firma Metrikleri", expanded=True):
+with st.expander("Tüm Firma Metrikleri", expanded=True):
     display_df = firms_df.copy()
     display_df["Fire_Orani"] = (display_df["Fire_Orani"] * 100).round(1).astype(str) + "%"
     display_df["Pazar_Payi"] = (display_df["Pazar_Payi"] * 100).round(1).astype(str) + "%"
@@ -269,12 +239,12 @@ with st.expander("Tum Firma Metrikleri", expanded=True):
 
     display_df = display_df.rename(columns={
         "Firma": "Firma",
-        "Tip": "Olcek",
-        "Uretim_Butcesi_TL": "Uretim Butcesi (TL)",
+        "Tip": "Ölçek",
+        "Uretim_Butcesi_TL": "Üretim Bütçesi (TL)",
         "Fire_Orani": "Fire %",
-        "Calisan_Sayisi": "Calisan",
-        "Yillik_Ciro_TL": "Yillik Ciro (TL)",
-        "Pazar_Payi": "Pazar Payi",
+        "Calisan_Sayisi": "Çalışan",
+        "Yillik_Ciro_TL": "Yıllık Ciro (TL)",
+        "Pazar_Payi": "Pazar Payı",
         "Birim_Maliyet_Ton": "Birim Maliyet (TL/ton)",
         "Kapasite_Kullanim": "Kapasite %",
         "ARGE_Oran": "AR-GE %",
@@ -283,11 +253,8 @@ with st.expander("Tum Firma Metrikleri", expanded=True):
 
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-with st.expander("Departman Dagilimi Detayi"):
+with st.expander("Departman Dağılımı Detayı"):
     dept_display = dept_df.copy()
     for col in ["Uretim", "Bakim", "Kalite", "Lojistik", "IT", "IK"]:
         dept_display[col] = (dept_display[col] * 100).round(1).astype(str) + "%"
     st.dataframe(dept_display, use_container_width=True, hide_index=True)
-
-st.caption("Not: Rakip firma verileri ornektir. Gercek verilerle guncellemek icin "
-           "`sample_data/sektor_benchmark.json` dosyasini duzenleyin.")

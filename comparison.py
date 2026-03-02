@@ -1,13 +1,7 @@
-"""
-Yorglass Finans - Departmanlar Arasi Karsilastirma Modulu.
-
-Lokasyon ve departman bazli karsilastirma analizleri.
-"""
 import pandas as pd
 
 
 def calculate_utilization_matrix(matrix_df):
-    """Kullanim orani matrisi hesapla."""
     df = matrix_df.copy()
     df["Kullanim_Orani"] = (df["Toplam_Gerceklesen"] / df["Toplam_Planlanan"] * 100).round(2)
     df["Fark"] = (df["Toplam_Planlanan"] - df["Toplam_Gerceklesen"]).round(2)
@@ -15,14 +9,12 @@ def calculate_utilization_matrix(matrix_df):
 
 
 def rank_departments(matrix_df, by="Kullanim_Orani", ascending=True):
-    """Departmanlari belirli bir metrige gore sirala."""
     df = calculate_utilization_matrix(matrix_df)
     df["Etiket"] = df["yer_ad"] + " - " + df["dept_ad"]
     return df.sort_values(by=by, ascending=ascending)
 
 
 def location_totals(matrix_df):
-    """Lokasyon bazli toplamlar."""
     return matrix_df.groupby(["yer_kod", "yer_ad"]).agg({
         "Toplam_Planlanan": "sum",
         "Toplam_Gerceklesen": "sum",
@@ -30,7 +22,6 @@ def location_totals(matrix_df):
 
 
 def department_type_totals(matrix_df):
-    """Departman tipi bazli toplamlar (tum lokasyonlar)."""
     return matrix_df.groupby(["dept_kod", "dept_ad"]).agg({
         "Toplam_Planlanan": "sum",
         "Toplam_Gerceklesen": "sum",
@@ -38,12 +29,10 @@ def department_type_totals(matrix_df):
 
 
 def cross_location_comparison(matrix_df, dept_kod):
-    """Ayni departman tipini lokasyonlar arasi karsilastir."""
     return matrix_df[matrix_df["dept_kod"] == dept_kod].copy()
 
 
 def company_kpis(matrix_df):
-    """Sirket geneli KPI'lar."""
     toplam_planlanan = matrix_df["Toplam_Planlanan"].sum()
     toplam_gerceklesen = matrix_df["Toplam_Gerceklesen"].sum()
     toplam_kalan = toplam_planlanan - toplam_gerceklesen

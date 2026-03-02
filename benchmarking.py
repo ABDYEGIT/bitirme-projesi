@@ -1,10 +1,3 @@
-"""
-Yorglass Finans - Sektor Benchmark (Kiyas) Modulu.
-
-Rakip firma verileri ile karsilastirmali analiz.
-JSON'dan benchmark verilerini yukler, Yorglass metriklerini DB'den hesaplar,
-sektor karsilastirmasi olusturur.
-"""
 import json
 import os
 import pandas as pd
@@ -16,7 +9,6 @@ BENCHMARK_PATH = os.path.join(os.path.dirname(__file__), "sample_data", "sektor_
 
 
 def load_benchmark_data(path=None):
-    """JSON dosyasindan rakip firma benchmark verilerini yukle."""
     filepath = path or BENCHMARK_PATH
     try:
         with open(filepath, "r", encoding="utf-8") as f:
@@ -27,13 +19,6 @@ def load_benchmark_data(path=None):
 
 
 def calculate_yorglass_metrics(conn, yil=2025):
-    """
-    Veritabanindan Yorglass'in kendi metriklerini hesapla.
-
-    DB'den: toplam butce, efektif harcama, departman dagilimi
-    JSON sabitlerden: calisan, ciro, pazar payi, birim maliyet, kapasite, arge
-    """
-    # Butce matrisini yukle
     query = """
         SELECT
             d.kod as dept_kod,
@@ -49,7 +34,6 @@ def calculate_yorglass_metrics(conn, yil=2025):
     toplam_planlanan = budget_df["Toplam_Planlanan"].sum()
     toplam_gerceklesen = budget_df["Toplam_Gerceklesen"].sum()
 
-    # Departman dagilimi (gerceklesen bazli)
     dept_dagilim = {}
     for _, row in budget_df.iterrows():
         if toplam_gerceklesen > 0:
@@ -57,13 +41,12 @@ def calculate_yorglass_metrics(conn, yil=2025):
         else:
             dept_dagilim[row["dept_kod"]] = 0
 
-    # JSON'dan sabit metrikleri yukle
     benchmark_data = load_benchmark_data()
     sabitler = benchmark_data.get("yorglass_sabitler", {}) if benchmark_data else {}
 
     yorglass = {
         "firma_adi": "Yorglass",
-        "firma_tipi": "Orta Olcekli",
+        "firma_tipi": "Orta Ölçekli",
         "yillik_uretim_butcesi": round(toplam_planlanan, 2),
         "yillik_gerceklesen": round(toplam_gerceklesen, 2),
         "fire_orani": VARSAYILAN_FIRE_ORANI,
@@ -81,20 +64,10 @@ def calculate_yorglass_metrics(conn, yil=2025):
 
 
 def compare_with_benchmarks(yorglass_metrics, benchmark_data):
-    """
-    Yorglass metriklerini rakip firmalarla karsilastir.
-
-    Dondurur:
-      - firms_df: Tum firmalarin tum metrikleri (DataFrame)
-      - ranking_df: Her metrikte Yorglass'in sirasi
-      - summary: Genel ozet dict
-    """
     firmalar = benchmark_data.get("firmalar", [])
 
-    # Tum firmalari birlestir (Yorglass + rakipler)
     all_firms = [yorglass_metrics] + firmalar
 
-    # Ana karsilastirma metrikleri
     rows = []
     for firma in all_firms:
         rows.append({
@@ -113,7 +86,6 @@ def compare_with_benchmarks(yorglass_metrics, benchmark_data):
 
     firms_df = pd.DataFrame(rows)
 
-    # Departman dagilim tablosu
     dept_rows = []
     for firma in all_firms:
         dag = firma.get("departman_dagilim", {})
@@ -128,14 +100,13 @@ def compare_with_benchmarks(yorglass_metrics, benchmark_data):
         })
     dept_df = pd.DataFrame(dept_rows)
 
-    # Siralama analizi (her metrik icin Yorglass kacinci?)
     ranking_metrics = {
-        "Fire_Orani": {"ascending": True, "label": "Fire Orani", "format": "percent", "best": "dusuk"},
-        "Birim_Maliyet_Ton": {"ascending": True, "label": "Birim Maliyet (TL/ton)", "format": "currency", "best": "dusuk"},
-        "Kapasite_Kullanim": {"ascending": False, "label": "Kapasite Kullanimi", "format": "percent", "best": "yuksek"},
-        "ARGE_Oran": {"ascending": False, "label": "AR-GE Orani", "format": "percent", "best": "yuksek"},
-        "Pazar_Payi": {"ascending": False, "label": "Pazar Payi", "format": "percent", "best": "yuksek"},
-        "Yillik_Ciro_TL": {"ascending": False, "label": "Yillik Ciro", "format": "currency", "best": "yuksek"},
+        "Fire_Orani": {"ascending": True, "label": "Fire Oranı", "format": "percent", "best": "düşük"},
+        "Birim_Maliyet_Ton": {"ascending": True, "label": "Birim Maliyet (TL/ton)", "format": "currency", "best": "düşük"},
+        "Kapasite_Kullanim": {"ascending": False, "label": "Kapasite Kullanımı", "format": "percent", "best": "yüksek"},
+        "ARGE_Oran": {"ascending": False, "label": "AR-GE Oranı", "format": "percent", "best": "yüksek"},
+        "Pazar_Payi": {"ascending": False, "label": "Pazar Payı", "format": "percent", "best": "yüksek"},
+        "Yillik_Ciro_TL": {"ascending": False, "label": "Yıllık Ciro", "format": "currency", "best": "yüksek"},
     }
 
     ranking_rows = []
@@ -162,7 +133,6 @@ def compare_with_benchmarks(yorglass_metrics, benchmark_data):
 
     ranking_df = pd.DataFrame(ranking_rows)
 
-    # Genel ozet
     yorglass_fire = yorglass_metrics["fire_orani"]
     sektor_fire_ort = firms_df[firms_df["Firma"] != "Yorglass"]["Fire_Orani"].mean()
     yorglass_maliyet = yorglass_metrics["birim_maliyet_ton"]
@@ -184,28 +154,25 @@ def compare_with_benchmarks(yorglass_metrics, benchmark_data):
 
 
 def get_benchmark_context_for_chatbot(firms_df, ranking_df, summary):
-    """Chatbot icin sektor karsilastirma metin ozeti olustur."""
     lines = []
-    lines.append("--- SEKTOR BENCHMARK KARSILASTIRMASI ---")
-    lines.append(f"Toplam {summary['firma_sayisi']} firma karsilastiriliyor (Yorglass dahil)")
+    lines.append("--- SEKTÖR BENCHMARK KARŞILAŞTIRMASI ---")
+    lines.append(f"Toplam {summary['firma_sayisi']} firma karşılaştırılıyor (Yorglass dahil)")
     lines.append("")
 
-    # Firma metrikleri tablosu
-    lines.append("FIRMA METRIKLERI:")
+    lines.append("FİRMA METRİKLERİ:")
     lines.append(firms_df.to_string(index=False))
     lines.append("")
 
-    # Siralama
-    lines.append("YORGLASS SIRALAMA ANALIZI:")
+    lines.append("YORGLASS SIRALAMA ANALİZİ:")
     for _, row in ranking_df.iterrows():
         lines.append(
             f"  {row['Metrik']}: Yorglass {row['Yorglass_Sira']}/{row['Toplam_Firma']} "
-            f"(Yorglass: {row['Yorglass']}, Sektor Ort: {row['Sektor_Ortalama']}, "
-            f"En Iyi: {row['En_Iyi']} - {row['En_Iyi_Firma']}) → {row['Durum']}"
+            f"(Yorglass: {row['Yorglass']}, Sektör Ort: {row['Sektor_Ortalama']}, "
+            f"En İyi: {row['En_Iyi']} - {row['En_Iyi_Firma']}) → {row['Durum']}"
         )
 
     lines.append("")
-    lines.append(f"Fire Orani: Yorglass %{summary['yorglass_fire']*100:.1f} vs Sektor Ort %{summary['sektor_fire_ort']*100:.1f}")
-    lines.append(f"Birim Maliyet: Yorglass {summary['yorglass_maliyet']:,.0f} TL/ton vs Sektor Ort {summary['sektor_maliyet_ort']:,.0f} TL/ton")
+    lines.append(f"Fire Oranı: Yorglass %{summary['yorglass_fire']*100:.1f} vs Sektör Ort %{summary['sektor_fire_ort']*100:.1f}")
+    lines.append(f"Birim Maliyet: Yorglass {summary['yorglass_maliyet']:,.0f} TL/ton vs Sektör Ort {summary['sektor_maliyet_ort']:,.0f} TL/ton")
 
     return "\n".join(lines)

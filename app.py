@@ -1,8 +1,3 @@
-"""
-Yorglass Finans - Ana Sayfa.
-
-Sirket geneli butce ozeti ve navigasyon.
-"""
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
@@ -15,69 +10,58 @@ from components import format_currency
 from benchmarking import load_benchmark_data, calculate_yorglass_metrics, compare_with_benchmarks
 from styles import inject_custom_css, apply_chart_style, render_nav_card
 
-# --- Sayfa Ayarlari ---
 st.set_page_config(
-    page_title=f"{SIRKET_ADI} Butce Analiz Sistemi",
+    page_title=f"{SIRKET_ADI} Bütçe Analiz Sistemi",
     page_icon="🏭",
     layout="wide",
 )
 
 inject_custom_css()
 
-st.title(f"🏭 {SIRKET_ADI} Butce Analiz Sistemi")
-st.markdown("Tum isletme ve departmanlarin butce, siparis ve malzeme verilerini analiz edin.")
+st.title(f"🏭 {SIRKET_ADI} Bütçe Analiz Sistemi")
+st.markdown("Tüm işletme ve departmanların bütçe, sipariş ve malzeme verilerini analiz edin.")
 
-# --- Sidebar: Ayarlar ---
 st.sidebar.header("Ayarlar")
-db_path = st.sidebar.text_input("Veritabani Yolu:", value=DB_PATH, key="db_path_main")
-yil = st.sidebar.selectbox("Yil:", [2025, 2024, 2026], index=0, key="yil_main")
+db_path = st.sidebar.text_input("Veritabanı Yolu:", value=DB_PATH, key="db_path_main")
+yil = st.sidebar.selectbox("Yıl:", [2025, 2024, 2026], index=0, key="yil_main")
 
-# Session state'e kaydet (diger sayfalar okuyacak)
 st.session_state["db_path"] = db_path
 st.session_state["yil"] = yil
 
-# --- DB Baglantisi ---
 conn, err = connect_db(db_path)
 if err:
-    st.error(f"Veritabani baglantisi basarisiz: {err}")
-    st.info("Ornek veritabani olusturmak icin: `python create_database.py`")
+    st.error(f"Veritabanı bağlantısı başarısız: {err}")
+    st.info("Örnek veritabanı oluşturmak için: `python create_database.py`")
     st.stop()
 
-# --- Veri Yukle ---
 matrix = load_budget_matrix(conn, yil)
 if matrix.empty:
-    st.warning("Secilen yil icin butce verisi bulunamadi.")
+    st.warning("Seçilen yıl için bütçe verisi bulunamadı.")
     conn.close()
     st.stop()
 
 order_summary = load_order_summary(conn)
 kpis = company_kpis(matrix)
 
-# ============================
-# SIRKET GENELI KPI
-# ============================
-st.header("Sirket Geneli Ozet")
+st.header("Şirket Geneli Özet")
 
 c1, c2, c3, c4 = st.columns(4)
 with c1:
-    st.metric("Toplam Planlanan Butce", format_currency(kpis["toplam_planlanan"]))
+    st.metric("Toplam Planlanan Bütçe", format_currency(kpis["toplam_planlanan"]))
 with c2:
-    st.metric("Toplam Gerceklesen", format_currency(kpis["toplam_gerceklesen"]))
+    st.metric("Toplam Gerçekleşen", format_currency(kpis["toplam_gerceklesen"]))
 with c3:
-    st.metric("Kalan Butce", format_currency(kpis["toplam_kalan"]))
+    st.metric("Kalan Bütçe", format_currency(kpis["toplam_kalan"]))
 with c4:
-    st.metric("Kullanim Orani", f"%{kpis['kullanim_orani']}")
+    st.metric("Kullanım Oranı", f"%{kpis['kullanim_orani']}")
 
 st.progress(min(kpis["kullanim_orani"] / 100, 1.0))
 
-st.caption(f"{kpis['lokasyon_sayisi']} isletme, {kpis['departman_sayisi']} departman")
+st.caption(f"{kpis['lokasyon_sayisi']} işletme, {kpis['departman_sayisi']} departman")
 
 st.divider()
 
-# ============================
-# ISLETME BAZLI KARSILASTIRMA
-# ============================
-st.header("Isletme Bazli Butce Dagilimi")
+st.header("İşletme Bazlı Bütçe Dağılımı")
 
 loc_totals = location_totals(matrix)
 loc_totals["Kullanim_Orani"] = (loc_totals["Toplam_Gerceklesen"] / loc_totals["Toplam_Planlanan"] * 100).round(2)
@@ -89,34 +73,30 @@ fig_loc.add_trace(go.Bar(
 ))
 fig_loc.add_trace(go.Bar(
     x=loc_totals["yer_ad"], y=loc_totals["Toplam_Gerceklesen"],
-    name="Gerceklesen", marker_color="#FF9800",
+    name="Gerçekleşen", marker_color="#FF9800",
 ))
 apply_chart_style(fig_loc,
-    title="Isletme Bazli Toplam Butce",
+    title="İşletme Bazlı Toplam Bütçe",
     barmode="group", height=450, yaxis_title="Tutar (TL)",
 )
 st.plotly_chart(fig_loc, use_container_width=True)
 
-# Kullanim orani tablosu
 st.dataframe(
     loc_totals[["yer_ad", "Toplam_Planlanan", "Toplam_Gerceklesen", "Kullanim_Orani"]].rename(
         columns={
-            "yer_ad": "Isletme",
+            "yer_ad": "İşletme",
             "Toplam_Planlanan": "Planlanan (TL)",
-            "Toplam_Gerceklesen": "Gerceklesen (TL)",
-            "Kullanim_Orani": "Kullanim %",
+            "Toplam_Gerceklesen": "Gerçekleşen (TL)",
+            "Kullanim_Orani": "Kullanım %",
         }
     ),
     use_container_width=True,
     hide_index=True,
 )
 
-# ============================
-# SIPARIS OZETI
-# ============================
 if not order_summary.empty:
     st.divider()
-    st.header("Siparis Ozeti")
+    st.header("Sipariş Özeti")
 
     order_by_loc = order_summary.groupby("yer_ad").agg({
         "Siparis_Adet": "sum",
@@ -127,7 +107,7 @@ if not order_summary.empty:
     with col1:
         fig_o = px.bar(
             order_by_loc, x="yer_ad", y="Toplam_Tutar", color="yer_ad",
-            title="Isletme Bazli Siparis Tutarlari",
+            title="İşletme Bazlı Sipariş Tutarları",
         )
         apply_chart_style(fig_o, showlegend=False, height=400, xaxis_title="", yaxis_title="Tutar (TL)")
         st.plotly_chart(fig_o, use_container_width=True)
@@ -135,90 +115,83 @@ if not order_summary.empty:
     with col2:
         fig_o2 = px.bar(
             order_by_loc, x="yer_ad", y="Siparis_Adet", color="yer_ad",
-            title="Isletme Bazli Siparis Adetleri",
+            title="İşletme Bazlı Sipariş Adetleri",
         )
         apply_chart_style(fig_o2, showlegend=False, height=400, xaxis_title="", yaxis_title="Adet")
         st.plotly_chart(fig_o2, use_container_width=True)
 
-# ============================
-# GELECEK YIL BUTCE TAHMINI
-# ============================
 st.divider()
-st.header("Gelecek Yil Butce Tahmini")
+st.header("Gelecek Yıl Bütçe Tahmini")
 st.markdown(
-    f"**{yil}** yili verilerini analiz ederek **{yil + 1}** yili icin "
-    "departman bazli butce tahmini olusturun."
+    f"**{yil}** yılı verilerini analiz ederek **{yil + 1}** yılı için "
+    "departman bazlı bütçe tahmini oluşturun."
 )
 
-# --- Tahmin Parametreleri ---
 st.subheader("Tahmin Parametreleri")
 
 param_col1, param_col2 = st.columns(2)
 
 with param_col1:
     enflasyon_pct = st.slider(
-        "Enflasyon Orani (%):",
+        "Enflasyon Oranı (%):",
         min_value=0, max_value=100, value=30, step=1,
-        help="Yillik enflasyon tahmini",
+        help="Yıllık enflasyon tahmini",
         key="forecast_enflasyon",
     )
     guven_marji_pct = st.slider(
-        "Guven Marji (%):",
+        "Güven Marjı (%):",
         min_value=0, max_value=30, value=10, step=1,
-        help="Emniyet tamponu — beklenmedik harcamalar icin ek butce",
+        help="Emniyet tamponu — beklenmedik harcamalar için ek bütçe",
         key="forecast_guven",
     )
 
 with param_col2:
     fire_2025_pct = st.number_input(
-        f"{yil} Fire Orani (%):",
+        f"{yil} Fire Oranı (%):",
         min_value=0.0, max_value=50.0,
         value=VARSAYILAN_FIRE_ORANI * 100,
         step=0.5,
-        help="Cam uretimindeki mevcut fire (hurda/iskarta) orani",
+        help="Cam üretimindeki mevcut fire (hurda/iskarta) oranı",
         key="forecast_fire_2025",
     )
     fire_2026_pct = st.number_input(
-        f"{yil + 1} Tahmini Fire Orani (%):",
+        f"{yil + 1} Tahmini Fire Oranı (%):",
         min_value=0.0, max_value=50.0,
         value=VARSAYILAN_FIRE_ORANI * 100,
         step=0.5,
-        help="Gelecek yil icin hedeflenen fire orani",
+        help="Gelecek yıl için hedeflenen fire oranı",
         key="forecast_fire_2026",
     )
 
-# Fire etki bilgisi
-with st.expander("Fire Orani Etki Bilgisi"):
+with st.expander("Fire Oranı Etki Bilgisi"):
     st.markdown("""
-    Fire orani degisimi her departmani farkli oranda etkiler:
+    Fire oranı değişimi her departmanı farklı oranda etkiler:
 
-    | Departman | Etki Agirligi | Aciklama |
+    | Departman | Etki Ağırlığı | Açıklama |
     |-----------|:------------:|----------|
-    | Uretim    | %100         | Dogrudan uretim hurda/iskartasi |
-    | Bakim     | %30          | Yuksek fire → makine yipranmasi artar |
-    | Kalite    | %20          | Yuksek fire → daha fazla test/kontrol |
-    | Lojistik  | %15          | Yuksek fire → daha fazla malzeme tasima |
+    | Üretim    | %100         | Doğrudan üretim hurda/iskartası |
+    | Bakım     | %30          | Yüksek fire → makine yıpranması artar |
+    | Kalite    | %20          | Yüksek fire → daha fazla test/kontrol |
+    | Lojistik  | %15          | Yüksek fire → daha fazla malzeme taşıma |
     | IT        | %0           | Etkilenmez |
     | IK        | %0           | Etkilenmez |
     """)
 
-# --- Tahmin Butonu ---
-if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
+if st.button("Bütçe Tahmini Oluştur", type="primary", use_container_width=True):
     enflasyon = enflasyon_pct / 100
     guven_marji = guven_marji_pct / 100
     fire_2025 = fire_2025_pct / 100
     fire_2026 = fire_2026_pct / 100
 
-    with st.spinner("Butce tahmini hesaplaniyor..."):
+    with st.spinner("Bütçe tahmini hesaplanıyor..."):
         forecast_df, ozet, aylik_tahmin_df = generate_budget_forecast(
             conn, yil, enflasyon, guven_marji, fire_2025, fire_2026
         )
 
     if forecast_df.empty:
-        st.warning("Tahmin olusturulamadi — yeterli veri bulunamadi.")
+        st.warning("Tahmin oluşturulamadı — yeterli veri bulunamadı.")
     else:
-        # --- Tahmin KPI Kartlari ---
-        st.subheader("Tahmin Ozeti")
+        st.subheader("Tahmin Özeti")
 
         kpi_c1, kpi_c2, kpi_c3, kpi_c4 = st.columns(4)
         with kpi_c1:
@@ -233,17 +206,16 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
             )
         with kpi_c3:
             st.metric(
-                f"{yil + 1} Tahmin Butce",
+                f"{yil + 1} Tahmin Bütçe",
                 format_currency(ozet["toplam_tahmin_2026"]),
                 delta=format_currency(ozet["toplam_fark"]),
             )
         with kpi_c4:
             st.metric(
-                "Ortalama Degisim",
+                "Ortalama Değişim",
                 f"%{ozet['ortalama_degisim']:.1f}",
             )
 
-        # Etki dagilimlari
         etki_c1, etki_c2, etki_c3 = st.columns(3)
         with etki_c1:
             fire_delta = ozet["toplam_fire_etkisi"]
@@ -261,14 +233,13 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
             )
         with etki_c3:
             st.metric(
-                "Guven Marji Etkisi",
+                "Güven Marjı Etkisi",
                 format_currency(ozet["toplam_guven_etkisi"]),
             )
 
-        # Durum dagilimlari
         durum_c1, durum_c2, durum_c3 = st.columns(3)
         with durum_c1:
-            st.metric("Butce Asan Dept.", ozet["asim_dept_sayisi"])
+            st.metric("Bütçe Aşan Dept.", ozet["asim_dept_sayisi"])
         with durum_c2:
             st.metric("Tasarruflu Dept.", ozet["tasarruf_dept_sayisi"])
         with durum_c3:
@@ -276,10 +247,8 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
 
         st.divider()
 
-        # --- Karsilastirma Grafigi ---
-        st.subheader(f"{yil} vs {yil + 1} Butce Karsilastirmasi")
+        st.subheader(f"{yil} vs {yil + 1} Bütçe Karşılaştırması")
 
-        # Isletme bazli ozet
         loc_forecast = forecast_df.groupby("yer_ad").agg(
             Planlanan_2025=("Planlanan_2025", "sum"),
             Efektif_2025=("Efektif_2025", "sum"),
@@ -300,15 +269,13 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
             name=f"{yil + 1} Tahmin", marker_color="#4CAF50",
         ))
         apply_chart_style(fig_compare,
-            title=f"Isletme Bazli Butce Karsilastirmasi ({yil} vs {yil + 1})",
+            title=f"İşletme Bazlı Bütçe Karşılaştırması ({yil} vs {yil + 1})",
             barmode="group", height=450, yaxis_title="Tutar (TL)",
         )
         st.plotly_chart(fig_compare, use_container_width=True)
 
-        # --- Departman Bazli Karsilastirma ---
-        st.subheader("Departman Bazli Tahmin")
+        st.subheader("Departman Bazlı Tahmin")
 
-        # Etiket kolonu ekle
         forecast_df["Etiket"] = forecast_df["yer_ad"] + " - " + forecast_df["dept_ad"]
 
         fig_dept = go.Figure()
@@ -328,19 +295,18 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
             orientation="h",
         ))
         apply_chart_style(fig_dept,
-            title=f"Departman Bazli Butce Karsilastirmasi",
+            title=f"Departman Bazlı Bütçe Karşılaştırması",
             barmode="group", height=max(400, len(forecast_df) * 45),
             xaxis_title="Tutar (TL)", yaxis_title="",
         )
         st.plotly_chart(fig_dept, use_container_width=True)
 
-        # --- Fire Etkisi Grafigi (sadece fabrika departmanlari) ---
         fabrika_forecast = forecast_df[forecast_df["dept_kod"].isin(
             [k for k, v in FIRE_ETKI_AGIRLIKLARI.items() if v > 0]
         )]
 
         if not fabrika_forecast.empty and fire_2025_pct != fire_2026_pct:
-            st.subheader("Fire Orani Etkisi (Fabrika Departmanlari)")
+            st.subheader("Fire Oranı Etkisi (Fabrika Departmanları)")
 
             fig_fire = go.Figure()
             fig_fire.add_trace(go.Bar(
@@ -356,16 +322,15 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
                 ),
                 textposition="outside",
             ))
-            fire_yonu = "Azalis" if fire_2026_pct < fire_2025_pct else "Artis"
+            fire_yonu = "Azalış" if fire_2026_pct < fire_2025_pct else "Artış"
             apply_chart_style(fig_fire,
-                title=f"Fire Orani Degisimi Etkisi ({fire_2025_pct}% → {fire_2026_pct}% | {fire_yonu})",
+                title=f"Fire Oranı Değişimi Etkisi ({fire_2025_pct}% → {fire_2026_pct}% | {fire_yonu})",
                 height=max(300, len(fabrika_forecast) * 40),
                 xaxis_title="Tutar Etkisi (TL)", yaxis_title="",
             )
             st.plotly_chart(fig_fire, use_container_width=True)
 
-        # --- Kullanim Orani Analizi ---
-        st.subheader(f"{yil} Kullanim Orani Analizi")
+        st.subheader(f"{yil} Kullanım Oranı Analizi")
 
         fig_util = go.Figure()
         colors = []
@@ -384,17 +349,16 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
             textposition="outside",
         ))
         fig_util.add_vline(x=100, line_dash="dash", line_color="gray",
-                          annotation_text="Butce Siniri (%100)")
+                          annotation_text="Bütçe Sınırı (%100)")
         apply_chart_style(fig_util,
-            title=f"{yil} Butce Kullanim Orani (Efektif / Planlanan)",
+            title=f"{yil} Bütçe Kullanım Oranı (Efektif / Planlanan)",
             height=max(400, len(forecast_df) * 40),
-            xaxis_title="Kullanim Orani (%)", yaxis_title="",
+            xaxis_title="Kullanım Oranı (%)", yaxis_title="",
         )
         st.plotly_chart(fig_util, use_container_width=True)
 
         st.divider()
 
-        # --- Detay Tablosu ---
         st.subheader("Tahmin Detay Tablosu")
 
         display_forecast = forecast_df[[
@@ -402,22 +366,21 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
             "Kullanim_Orani", "Durum_2025", "Fire_Etkisi_TL",
             "Enflasyon_Etkisi_TL", "Tahmin_2026", "Degisim_Yuzde",
         ]].rename(columns={
-            "yer_ad": "Isletme",
+            "yer_ad": "İşletme",
             "dept_ad": "Departman",
             "Planlanan_2025": f"Planlanan {yil} (TL)",
             "Efektif_2025": f"Efektif {yil} (TL)",
-            "Kullanim_Orani": "Kullanim %",
+            "Kullanim_Orani": "Kullanım %",
             "Durum_2025": f"{yil} Durum",
             "Fire_Etkisi_TL": "Fire Etkisi (TL)",
             "Enflasyon_Etkisi_TL": "Enflasyon Etkisi (TL)",
             "Tahmin_2026": f"Tahmin {yil + 1} (TL)",
-            "Degisim_Yuzde": "Degisim %",
+            "Degisim_Yuzde": "Değişim %",
         })
 
         st.dataframe(display_forecast, use_container_width=True, hide_index=True)
 
-        # --- Aylik Kirilim ---
-        with st.expander(f"{yil + 1} Aylik Tahmin Kirilimi"):
+        with st.expander(f"{yil + 1} Aylık Tahmin Kırılımı"):
             if not aylik_tahmin_df.empty:
                 aylik_pivot = aylik_tahmin_df.pivot_table(
                     values="Tahmin_2026",
@@ -428,12 +391,11 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
 
                 aylik_pivot.columns.name = None
                 aylik_pivot = aylik_pivot.rename(columns={
-                    "yer_ad": "Isletme",
+                    "yer_ad": "İşletme",
                     "dept_ad": "Departman",
                 })
 
-                # Ay sutunlarini sirala
-                ay_cols = [c for c in aylik_pivot.columns if c not in ["Isletme", "Departman"]]
+                ay_cols = [c for c in aylik_pivot.columns if c not in ["İşletme", "Departman"]]
                 try:
                     ay_cols_sorted = sorted(ay_cols, key=lambda x: int(x))
                 except ValueError:
@@ -441,8 +403,8 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
 
                 ay_rename = {}
                 ay_isimleri = [
-                    "Ocak", "Subat", "Mart", "Nisan", "Mayis", "Haziran",
-                    "Temmuz", "Agustos", "Eylul", "Ekim", "Kasim", "Aralik",
+                    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+                    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
                 ]
                 for ac in ay_cols_sorted:
                     try:
@@ -456,33 +418,29 @@ if st.button("Butce Tahmini Olustur", type="primary", use_container_width=True):
 
                 st.dataframe(aylik_pivot, use_container_width=True, hide_index=True)
 
-# ============================
-# SEKTOR KARSILASTIRMA OZETI
-# ============================
 st.divider()
-st.header("Sektor Karsilastirma Ozeti")
+st.header("Sektör Karşılaştırma Özeti")
 
 benchmark_data = load_benchmark_data()
 if benchmark_data:
     yorglass_metrics = calculate_yorglass_metrics(conn, yil)
     firms_df, dept_df, ranking_df, summary_bm = compare_with_benchmarks(yorglass_metrics, benchmark_data)
 
-    # Fire orani ve birim maliyet karsilastirmasi
     bm_c1, bm_c2, bm_c3, bm_c4 = st.columns(4)
 
     with bm_c1:
         fire_fark_pct = summary_bm["fire_fark"] * 100
-        fire_durum = "yuksek" if fire_fark_pct > 0 else "dusuk"
+        fire_durum = "yüksek" if fire_fark_pct > 0 else "düşük"
         st.metric(
-            "Fire Orani (Yorglass)",
+            "Fire Oranı (Yorglass)",
             f"%{summary_bm['yorglass_fire']*100:.1f}",
-            delta=f"{fire_fark_pct:+.1f}% vs sektor",
+            delta=f"{fire_fark_pct:+.1f}% vs sektör",
             delta_color="inverse",
         )
 
     with bm_c2:
         st.metric(
-            "Sektor Ort. Fire",
+            "Sektör Ort. Fire",
             f"%{summary_bm['sektor_fire_ort']*100:.1f}",
         )
 
@@ -490,77 +448,72 @@ if benchmark_data:
         st.metric(
             "Birim Maliyet (Yorglass)",
             f"{summary_bm['yorglass_maliyet']:,.0f} TL/ton",
-            delta=f"{summary_bm['maliyet_fark']:+,.0f} TL vs sektor",
+            delta=f"{summary_bm['maliyet_fark']:+,.0f} TL vs sektör",
             delta_color="inverse",
         )
 
     with bm_c4:
         st.metric(
-            "Sektor Ort. Birim Maliyet",
+            "Sektör Ort. Birim Maliyet",
             f"{summary_bm['sektor_maliyet_ort']:,.0f} TL/ton",
         )
 
-    # Guclu / Gelistirilmeli alan ozeti
     bm_c5, bm_c6, bm_c7 = st.columns(3)
 
     with bm_c5:
-        st.metric("Karsilastirilan Firma", summary_bm["firma_sayisi"])
+        st.metric("Karşılaştırılan Firma", summary_bm["firma_sayisi"])
     with bm_c6:
-        st.metric("Guclu Alanlar", f"{summary_bm['guclu_alanlar']} metrik")
+        st.metric("Güçlü Alanlar", f"{summary_bm['guclu_alanlar']} metrik")
     with bm_c7:
-        st.metric("Gelistirilmeli Alanlar", f"{summary_bm['gelistirilmeli_alanlar']} metrik")
+        st.metric("Geliştirilmeli Alanlar", f"{summary_bm['gelistirilmeli_alanlar']} metrik")
 
-    # Yorglass pozisyon ozeti (kisa)
-    with st.expander("Yorglass Sektor Pozisyonu"):
+    with st.expander("Yorglass Sektör Pozisyonu"):
         for _, row in ranking_df.iterrows():
             durum = row["Durum"]
             icon = "🟢" if durum == "Iyi" else ("🟡" if durum == "Orta" else "🔴")
             st.markdown(
-                f"{icon} **{row['Metrik']}**: {row['Yorglass_Sira']}/{row['Toplam_Firma']} sirada "
-                f"— Yorglass: `{row['Yorglass']}` | Sektor Ort: `{row['Sektor_Ortalama']}` "
-                f"| En Iyi: `{row['En_Iyi']}` ({row['En_Iyi_Firma']})"
+                f"{icon} **{row['Metrik']}**: {row['Yorglass_Sira']}/{row['Toplam_Firma']} sırada "
+                f"— Yorglass: `{row['Yorglass']}` | Sektör Ort: `{row['Sektor_Ortalama']}` "
+                f"| En İyi: `{row['En_Iyi']}` ({row['En_Iyi_Firma']})"
             )
 
-    st.info("📊 Detayli sektor karsilastirmasi icin kenar cubugundaki **Sektor Kiyas** sayfasina gidin.")
+    st.info("📊 Detaylı sektör karşılaştırması için kenar çubuğundaki **Sektör Kıyas** sayfasına gidin.")
 else:
-    st.warning("Benchmark verisi bulunamadi. `sample_data/sektor_benchmark.json` dosyasini kontrol edin.")
+    st.warning("Benchmark verisi bulunamadı. `sample_data/sektor_benchmark.json` dosyasını kontrol edin.")
 
-# ============================
-# SAYFA REHBERI
-# ============================
 st.divider()
 st.header("Sayfa Rehberi")
 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    render_nav_card("Genel Karsilastirma", "📊", [
-        "Kullanim orani heatmap",
-        "Departman siralamasi",
-        "Lokasyonlar arasi analiz",
+    render_nav_card("Genel Karşılaştırma", "📊", [
+        "Kullanım oranı heatmap",
+        "Departman sıralaması",
+        "Lokasyonlar arası analiz",
     ])
 
 with col2:
     render_nav_card("Departman Detay", "📋", [
-        "Butce grafikleri",
-        "Siparis analizi",
-        "Optimum butce hesaplama",
+        "Bütçe grafikleri",
+        "Sipariş analizi",
+        "Optimum bütçe hesaplama",
         "AI finansal yorum",
     ])
 
 with col3:
     render_nav_card("Malzeme Analizi", "🔬", [
-        "Mal grubu bazli harcamalar",
-        "Departmanlar arasi alim tespiti",
-        "Malzeme hareket detaylari",
+        "Mal grubu bazlı harcamalar",
+        "Departmanlar arası alım tespiti",
+        "Malzeme hareket detayları",
     ])
 
 with col4:
-    render_nav_card("Sektor Kiyas", "🏭", [
-        "Rakip firma karsilastirmasi",
-        "Radar performans grafigi",
-        "Fire orani & maliyet kiyas",
-        "Departman dagilimi analizi",
+    render_nav_card("Sektör Kıyas", "🏭", [
+        "Rakip firma karşılaştırması",
+        "Radar performans grafiği",
+        "Fire oranı & maliyet kıyas",
+        "Departman dağılımı analizi",
     ])
 
 conn.close()

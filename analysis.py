@@ -2,25 +2,20 @@ import pandas as pd
 import numpy as np
 
 
-# ============================
-# AY ISMI ESLESME TABLOSU
-# ============================
 AY_MAP = {
-    1: "Ocak", 2: "Subat", 3: "Mart", 4: "Nisan",
-    5: "Mayis", 6: "Haziran", 7: "Temmuz", 8: "Agustos",
-    9: "Eylul", 10: "Ekim", 11: "Kasim", 12: "Aralik",
-    # Kucuk harfli ve Turkce karakterli eslemeler
-    "ocak": "Ocak", "subat": "Subat", "şubat": "Subat",
-    "mart": "Mart", "nisan": "Nisan", "mayis": "Mayis",
-    "mayıs": "Mayis", "haziran": "Haziran", "temmuz": "Temmuz",
-    "agustos": "Agustos", "ağustos": "Agustos", "eylul": "Eylul",
-    "eylül": "Eylul", "ekim": "Ekim", "kasim": "Kasim",
-    "kasım": "Kasim", "aralik": "Aralik", "aralık": "Aralik",
+    1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan",
+    5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos",
+    9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık",
+    "ocak": "Ocak", "subat": "Şubat", "şubat": "Şubat",
+    "mart": "Mart", "nisan": "Nisan", "mayis": "Mayıs",
+    "mayıs": "Mayıs", "haziran": "Haziran", "temmuz": "Temmuz",
+    "agustos": "Ağustos", "ağustos": "Ağustos", "eylul": "Eylül",
+    "eylül": "Eylül", "ekim": "Ekim", "kasim": "Kasım",
+    "kasım": "Kasım", "aralik": "Aralık", "aralık": "Aralık",
 }
 
 
 def normalize_ay(ay_value):
-    """Ay degerini standart formata cevir."""
     if isinstance(ay_value, (int, float)):
         return AY_MAP.get(int(ay_value), str(ay_value))
     s = str(ay_value).strip().lower()
@@ -28,17 +23,9 @@ def normalize_ay(ay_value):
 
 
 def merge_budget_with_orders(budget_df, order_df):
-    """
-    Siparis tutarlarini aylara gore gruplayip butce verisine ekle.
-
-    Yeni sutunlar:
-      - Siparis_Tutari: O aydaki toplam siparis tutari
-      - Efektif_Gerceklesen: Gerceklesen + Siparis_Tutari
-    """
     df = budget_df.copy()
     df["Ay_Normalized"] = df["Ay"].apply(normalize_ay)
 
-    # Siparisleri aylara gore grupla
     order_copy = order_df.copy()
     if "Tarih" in order_copy.columns and order_copy["Tarih"].notna().any():
         order_copy["Ay_Num"] = order_copy["Tarih"].dt.month
@@ -48,13 +35,11 @@ def merge_budget_with_orders(budget_df, order_df):
         aylik_siparis = order_copy.groupby("Ay_Normalized")["Tutar"].sum().reset_index()
         aylik_siparis.columns = ["Ay_Normalized", "Siparis_Tutari"]
 
-        # Butce ile birlestir
         df = df.merge(aylik_siparis, on="Ay_Normalized", how="left")
         df["Siparis_Tutari"] = df["Siparis_Tutari"].fillna(0)
     else:
         df["Siparis_Tutari"] = 0
 
-    # Efektif gerceklesen = gerceklesen + siparisler
     df["Efektif_Gerceklesen"] = df["Gerceklesen"] + df["Siparis_Tutari"]
     df = df.drop(columns=["Ay_Normalized"])
 
@@ -62,7 +47,6 @@ def merge_budget_with_orders(budget_df, order_df):
 
 
 def calculate_budget_variance(budget_df):
-    """Butce sapma analizi hesapla (efektif gerceklesen varsa onu kullan)."""
     df = budget_df.copy()
     gerceklesen_col = "Efektif_Gerceklesen" if "Efektif_Gerceklesen" in df.columns else "Gerceklesen"
 
@@ -73,7 +57,6 @@ def calculate_budget_variance(budget_df):
 
 
 def calculate_remaining_budget(budget_df):
-    """Kalan butce hesapla (aylik ve kumulatif, efektif gerceklesen ile)."""
     df = budget_df.copy()
     gerceklesen_col = "Efektif_Gerceklesen" if "Efektif_Gerceklesen" in df.columns else "Gerceklesen"
 
@@ -85,7 +68,6 @@ def calculate_remaining_budget(budget_df):
 
 
 def calculate_spending_trend(budget_df):
-    """Harcama trendi hesapla (aylar arasi degisim)."""
     df = budget_df.copy()
     gerceklesen_col = "Efektif_Gerceklesen" if "Efektif_Gerceklesen" in df.columns else "Gerceklesen"
 
@@ -95,7 +77,6 @@ def calculate_spending_trend(budget_df):
 
 
 def calculate_budget_kpis(budget_df):
-    """Genel butce KPI'larini hesapla (efektif gerceklesen ile)."""
     gerceklesen_col = "Efektif_Gerceklesen" if "Efektif_Gerceklesen" in budget_df.columns else "Gerceklesen"
 
     toplam_planlanan = budget_df["Planlanan"].sum()
@@ -122,7 +103,6 @@ def calculate_budget_kpis(budget_df):
 
 
 def analyze_orders(order_df):
-    """Siparis verilerini analiz et."""
     toplam_siparis = len(order_df)
     toplam_tutar = order_df["Tutar"].sum()
     ortalama_tutar = order_df["Tutar"].mean()
@@ -137,13 +117,11 @@ def analyze_orders(order_df):
         "min_siparis": round(min_siparis, 2),
     }
 
-    # Durum bazli dagilim (varsa)
     if "Durum" in order_df.columns:
         durum_dagilim = order_df.groupby("Durum")["Tutar"].agg(["count", "sum"]).reset_index()
         durum_dagilim.columns = ["Durum", "Adet", "Toplam_Tutar"]
         result["durum_dagilim"] = durum_dagilim
 
-    # Aylik siparis dagilimi (tarih varsa)
     if "Tarih" in order_df.columns and order_df["Tarih"].notna().any():
         order_df_copy = order_df.copy()
         order_df_copy["Ay"] = order_df_copy["Tarih"].dt.to_period("M").astype(str)
@@ -155,47 +133,22 @@ def analyze_orders(order_df):
 
 
 def calculate_optimal_budget(budget_df, guven_marji=0.10):
-    """
-    Lineer regresyon ile optimum butce hesapla.
-
-    Algoritma:
-      1. Ham gerceklesen harcamalara lineer regresyon uygula (y = ax + b)
-         → Efektif degil, ham gerceklesen kullanilir cunku siparisler ayri gosterilir
-      2. Siparis trendini ayri hesapla
-      3. Optimum = Ham tahmin + Siparis tahmini + (guven_marji × toplam tahmin)
-         → Boylece butce gercekci kalir, siparisler ayri katman olarak eklenir
-
-    Parametreler:
-      - budget_df: Butce DataFrame'i
-      - guven_marji: Emniyet tamponu yuzdesi (varsayilan %10)
-
-    Dondurulen:
-      - DataFrame: Ay bazli optimum butce tablosu
-      - dict: Genel optimizasyon ozeti
-    """
     df = budget_df.copy()
     n = len(df)
     x = np.arange(1, n + 1, dtype=float)
 
-    # Ham gerceklesen harcamalar (siparisler haric)
     ham_harcamalar = df["Gerceklesen"].values
-
-    # Siparis tutarlari (varsa)
     siparis_tutarlari = df["Siparis_Tutari"].values if "Siparis_Tutari" in df.columns else np.zeros(n)
 
-    # --- 1. Ham harcamalar icin Lineer Regresyon ---
     a_ham, b_ham = np.polyfit(x, ham_harcamalar, 1)
     tahmin_ham = a_ham * x + b_ham
 
-    # --- 2. Siparis tutarlari icin ortalama (az veri oldugu icin trend yerine ortalama) ---
     ort_siparis = np.mean(siparis_tutarlari)
 
-    # --- 3. Toplam tahmin ve optimum butce ---
     tahmin_toplam = tahmin_ham + ort_siparis
     optimum_butce = tahmin_toplam * (1 + guven_marji)
     optimum_butce = np.round(optimum_butce, 2)
 
-    # --- Model istatistikleri ---
     efektif_harcamalar = ham_harcamalar + siparis_tutarlari
     residuals = efektif_harcamalar - tahmin_toplam
     std_sapma = np.std(residuals, ddof=1) if n > 2 else np.std(residuals)
@@ -204,7 +157,6 @@ def calculate_optimal_budget(budget_df, guven_marji=0.10):
     ss_tot = np.sum((ham_harcamalar - np.mean(ham_harcamalar)) ** 2)
     r_kare = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
 
-    # Sonuc DataFrame
     result_df = pd.DataFrame({
         "Ay": df["Ay"].values,
         "Mevcut_Butce": df["Planlanan"].values,
@@ -216,12 +168,10 @@ def calculate_optimal_budget(budget_df, guven_marji=0.10):
         "Fark_Mevcut_Optimum": np.round(df["Planlanan"].values - optimum_butce, 2),
     })
 
-    # Tasarruf / Ek ihtiyac
     result_df["Durum"] = result_df["Fark_Mevcut_Optimum"].apply(
         lambda val: "Tasarruf" if val > 0 else ("Ek Bütçe Gerekli" if val < 0 else "Dengeli")
     )
 
-    # Genel ozet
     toplam_mevcut = df["Planlanan"].sum()
     toplam_optimum = float(optimum_butce.sum())
     toplam_fark = toplam_mevcut - toplam_optimum
@@ -244,57 +194,36 @@ def calculate_optimal_budget(budget_df, guven_marji=0.10):
 
 
 def generate_analysis_summary(budget_kpis, order_analysis=None):
-    """AI yorumu icin analiz ozetini metin olarak olustur."""
     lines = []
-    lines.append("=== BUTCE ANALIZ OZETI ===")
-    lines.append(f"Toplam Planlanan Butce: {budget_kpis['toplam_planlanan']:,.2f} TL")
-    lines.append(f"Toplam Gerceklesen Harcama (Ham): {budget_kpis['toplam_gerceklesen_ham']:,.2f} TL")
-    lines.append(f"Toplam Acik Siparis Tutari: {budget_kpis['toplam_siparis']:,.2f} TL")
-    lines.append(f"Efektif Gerceklesen (Harcama + Siparisler): {budget_kpis['toplam_efektif']:,.2f} TL")
-    lines.append(f"Kalan Butce (Efektif): {budget_kpis['toplam_kalan']:,.2f} TL")
-    lines.append(f"Butce Kullanim Orani (Efektif): %{budget_kpis['kullanim_orani']}")
-    lines.append(f"Ortalama Aylik Efektif Harcama: {budget_kpis['ortalama_aylik_harcama']:,.2f} TL")
-    lines.append(f"En Yuksek Harcama Yapilan Ay: {budget_kpis['max_harcama_ay']}")
-    lines.append(f"En Dusuk Harcama Yapilan Ay: {budget_kpis['min_harcama_ay']}")
+    lines.append("=== BÜTÇE ANALİZ ÖZETİ ===")
+    lines.append(f"Toplam Planlanan Bütçe: {budget_kpis['toplam_planlanan']:,.2f} TL")
+    lines.append(f"Toplam Gerçekleşen Harcama (Ham): {budget_kpis['toplam_gerceklesen_ham']:,.2f} TL")
+    lines.append(f"Toplam Açık Sipariş Tutarı: {budget_kpis['toplam_siparis']:,.2f} TL")
+    lines.append(f"Efektif Gerçekleşen (Harcama + Siparişler): {budget_kpis['toplam_efektif']:,.2f} TL")
+    lines.append(f"Kalan Bütçe (Efektif): {budget_kpis['toplam_kalan']:,.2f} TL")
+    lines.append(f"Bütçe Kullanım Oranı (Efektif): %{budget_kpis['kullanim_orani']}")
+    lines.append(f"Ortalama Aylık Efektif Harcama: {budget_kpis['ortalama_aylik_harcama']:,.2f} TL")
+    lines.append(f"En Yüksek Harcama Yapılan Ay: {budget_kpis['max_harcama_ay']}")
+    lines.append(f"En Düşük Harcama Yapılan Ay: {budget_kpis['min_harcama_ay']}")
 
     if order_analysis:
         lines.append("")
-        lines.append("=== SIPARIS ANALIZ OZETI ===")
-        lines.append(f"Toplam Siparis Sayisi: {order_analysis['toplam_siparis']}")
-        lines.append(f"Toplam Siparis Tutari: {order_analysis['toplam_tutar']:,.2f} TL")
-        lines.append(f"Ortalama Siparis Tutari: {order_analysis['ortalama_tutar']:,.2f} TL")
-        lines.append(f"En Buyuk Siparis: {order_analysis['max_siparis']:,.2f} TL")
-        lines.append(f"En Kucuk Siparis: {order_analysis['min_siparis']:,.2f} TL")
+        lines.append("=== SİPARİŞ ANALİZ ÖZETİ ===")
+        lines.append(f"Toplam Sipariş Sayısı: {order_analysis['toplam_siparis']}")
+        lines.append(f"Toplam Sipariş Tutarı: {order_analysis['toplam_tutar']:,.2f} TL")
+        lines.append(f"Ortalama Sipariş Tutarı: {order_analysis['ortalama_tutar']:,.2f} TL")
+        lines.append(f"En Büyük Sipariş: {order_analysis['max_siparis']:,.2f} TL")
+        lines.append(f"En Küçük Sipariş: {order_analysis['min_siparis']:,.2f} TL")
 
     return "\n".join(lines)
 
 
 def calculate_cross_dept_budget_correction(budget_df, cross_dept_made, cross_dept_received):
-    """
-    Capraz departman alimlarini duzelterek 'what-if' butce hesapla.
-
-    Bu departmanin:
-      - cross_dept_made: Baska dept sorumlulugundan YAPILAN alimlar (butceden cikarilacak)
-      - cross_dept_received: Baska dept'lerin BU dept sorumlulugundan aldiklari (butceye eklenecek)
-
-    Duzeltilmis Gerceklesen = Orijinal - Yanlis_Alim + Eksik_Alim
-
-    Parametreler:
-      - budget_df: Aylik butce (Ay, Planlanan, Gerceklesen, [Efektif_Gerceklesen])
-      - cross_dept_made: Bu dept'in yanlis yaptigi alimlar DataFrame (tarih, toplam_tutar)
-      - cross_dept_received: Baska dept'lerin bu dept'ten almasi gereken alimlar (tarih, toplam_tutar)
-
-    Dondurur:
-      - correction_df: Duzeltilmis butce DataFrame
-      - ozet: Ozet istatistikler dict
-    """
     df = budget_df.copy()
 
-    # Ay numaralarini normalize et
     df["Ay_Normalized"] = df["Ay"].apply(normalize_ay)
     ay_sirasi = list(df["Ay_Normalized"])
 
-    # --- Yanlis alimlar (bu dept'in baska dept sorumlulugundan aldiklari) ---
     yanlis_aylik = pd.Series(0.0, index=range(len(df)))
     if cross_dept_made is not None and not cross_dept_made.empty:
         cdm = cross_dept_made.copy()
@@ -308,7 +237,6 @@ def calculate_cross_dept_budget_correction(budget_df, cross_dept_made, cross_dep
                 if ay in aylik_yanlis.index:
                     yanlis_aylik[idx] = aylik_yanlis[ay]
 
-    # --- Eksik alimlar (baska dept'lerin bu dept sorumlulugundan aldiklari) ---
     eksik_aylik = pd.Series(0.0, index=range(len(df)))
     if cross_dept_received is not None and not cross_dept_received.empty:
         cdr = cross_dept_received.copy()
@@ -322,7 +250,6 @@ def calculate_cross_dept_budget_correction(budget_df, cross_dept_made, cross_dep
                 if ay in aylik_eksik.index:
                     eksik_aylik[idx] = aylik_eksik[ay]
 
-    # Duzeltilmis gerceklesen hesapla
     gerceklesen_col = "Efektif_Gerceklesen" if "Efektif_Gerceklesen" in df.columns else "Gerceklesen"
 
     correction_df = pd.DataFrame({
@@ -341,7 +268,6 @@ def calculate_cross_dept_budget_correction(budget_df, cross_dept_made, cross_dep
         correction_df["Duzeltilmis_Gerceklesen"] - correction_df["Gerceklesen"]
     )
 
-    # Ozet
     toplam_yanlis = float(yanlis_aylik.sum())
     toplam_eksik = float(eksik_aylik.sum())
     net_etki = toplam_eksik - toplam_yanlis

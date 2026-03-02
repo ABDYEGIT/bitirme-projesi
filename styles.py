@@ -1,14 +1,5 @@
-"""
-Yorglass Finans - Merkezi Stil Modulu.
-
-Tum sayfalarda tutarli gorunum icin CSS, Plotly tema ve yardimci fonksiyonlar.
-"""
 import streamlit as st
 
-
-# ============================
-# RENK PALETI
-# ============================
 
 YORGLASS_COLORS = {
     "brand": "#FF5722",
@@ -27,15 +18,9 @@ YORGLASS_COLORS = {
 }
 
 
-# ============================
-# CSS ENJEKSIYONU
-# ============================
-
 def inject_custom_css():
-    """Ozel CSS stillerini sayfaya enjekte et. Her sayfanin basinda cagirilmali."""
     st.markdown("""
     <style>
-    /* ===== KPI / METRIC KARTLARI ===== */
     [data-testid="stMetric"] {
         background: linear-gradient(135deg, rgba(255,87,34,0.10) 0%, rgba(255,87,34,0.03) 100%);
         border: 1px solid rgba(255,87,34,0.18);
@@ -61,7 +46,6 @@ def inject_custom_css():
         font-weight: 700 !important;
     }
 
-    /* ===== BASLIKLAR ===== */
     .main h2 {
         border-bottom: 3px solid #FF5722;
         padding-bottom: 10px;
@@ -74,7 +58,6 @@ def inject_custom_css():
         margin-top: 1.5rem !important;
     }
 
-    /* ===== SIDEBAR BRANDING ===== */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #1E2229 0%, #0E1117 100%);
     }
@@ -102,14 +85,12 @@ def inject_custom_css():
         margin-bottom: 8px;
     }
 
-    /* ===== DIVIDER ===== */
     hr {
         border: none !important;
         border-top: 1px solid rgba(255,87,34,0.15) !important;
         margin: 2rem 0 !important;
     }
 
-    /* ===== EXPANDER ===== */
     [data-testid="stExpander"] {
         border: 1px solid rgba(255,87,34,0.12);
         border-radius: 10px;
@@ -120,19 +101,16 @@ def inject_custom_css():
         font-weight: 600;
     }
 
-    /* ===== DATAFRAME ===== */
     [data-testid="stDataFrame"] {
         border: 1px solid rgba(255,255,255,0.06);
         border-radius: 10px;
         overflow: hidden;
     }
 
-    /* ===== PROGRESS BAR ===== */
     .stProgress > div > div > div {
         background: linear-gradient(90deg, #FF5722, #FF8A65) !important;
     }
 
-    /* ===== BUTONLAR ===== */
     .stButton > button[kind="primary"],
     .stButton > button[data-testid="stBaseButton-primary"] {
         background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
@@ -150,18 +128,15 @@ def inject_custom_css():
         transform: translateY(-1px);
     }
 
-    /* ===== TAB VURGUSU ===== */
     .stTabs [data-baseweb="tab-highlight"] {
         background-color: #FF5722 !important;
     }
 
-    /* ===== CHAT MESAJLARI ===== */
     [data-testid="stChatMessage"] {
         border-radius: 12px;
         border: 1px solid rgba(255,255,255,0.05);
     }
 
-    /* ===== DEPLOY ICIN TEMIZ GORUNUM ===== */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header[data-testid="stHeader"] {
@@ -169,7 +144,6 @@ def inject_custom_css():
         backdrop-filter: blur(10px);
     }
 
-    /* ===== SELECTBOX / INPUT STILLERI ===== */
     .stSelectbox [data-baseweb="select"] {
         border-radius: 8px;
     }
@@ -180,7 +154,6 @@ def inject_custom_css():
         border-radius: 8px;
     }
 
-    /* ===== INFO / WARNING / SUCCESS KUTULARI ===== */
     [data-testid="stAlert"] {
         border-radius: 10px;
     }
@@ -188,12 +161,7 @@ def inject_custom_css():
     """, unsafe_allow_html=True)
 
 
-# ============================
-# PLOTLY TEMA
-# ============================
-
 def get_plotly_template():
-    """Tum Plotly grafikleri icin tutarli koyu tema sablonu dondur."""
     return dict(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
@@ -233,19 +201,13 @@ def get_plotly_template():
 
 
 def apply_chart_style(fig, **kwargs):
-    """Plotly figur'e Yorglass temasini uygula. Ek parametreler template'i override eder."""
     template = get_plotly_template()
     template.update(kwargs)
     fig.update_layout(**template)
     return fig
 
 
-# ============================
-# SAYFA BASLIGI
-# ============================
-
 def render_page_header(title, description=None):
-    """Sayfa basligi ve aciklama render et."""
     st.markdown(f"""
     <div style="
         padding: 0 0 15px 0;
@@ -262,12 +224,7 @@ def render_page_header(title, description=None):
     """, unsafe_allow_html=True)
 
 
-# ============================
-# BILGI KUTULARI
-# ============================
-
 def render_info_box(text, box_type="info"):
-    """Stilli bilgi kutusu render et. box_type: 'info', 'warning', 'success', 'danger'."""
     colors = {
         "info": ("#2196F3", "rgba(33,150,243,0.08)", "rgba(33,150,243,0.25)"),
         "warning": ("#FF9800", "rgba(255,152,0,0.08)", "rgba(255,152,0,0.25)"),
@@ -290,12 +247,7 @@ def render_info_box(text, box_type="info"):
     """, unsafe_allow_html=True)
 
 
-# ============================
-# NAVIGASYON KARTI
-# ============================
-
 def render_nav_card(title, icon, items):
-    """Sayfa rehberi icin navigasyon karti render et."""
     items_html = "".join(
         f'<li style="margin: 4px 0; color: rgba(250,250,250,0.7); font-size: 0.88rem;">{item}</li>'
         for item in items
