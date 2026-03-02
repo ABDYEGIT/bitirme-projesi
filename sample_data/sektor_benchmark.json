@@ -1,0 +1,103 @@
+{
+  "yil": 2025,
+  "aciklama": "Turkiye cam sektoru benchmark verileri. Ornek verilerdir, gercek verilerle guncellenebilir.",
+  "firmalar": [
+    {
+      "firma_adi": "Sisecam",
+      "firma_tipi": "Buyuk Olcekli",
+      "aciklama": "Turkiye'nin en buyuk cam ureticisi, global oyuncu",
+      "yillik_uretim_butcesi": 850000000,
+      "fire_orani": 0.04,
+      "calisan_sayisi": 22000,
+      "yillik_ciro": 4500000000,
+      "pazar_payi": 0.42,
+      "birim_maliyet_ton": 3200,
+      "kapasite_kullanim": 0.88,
+      "arge_oran": 0.025,
+      "fabrika_sayisi": 12,
+      "departman_dagilim": {
+        "uretim": 0.50,
+        "bakim": 0.14,
+        "kalite": 0.10,
+        "lojistik": 0.12,
+        "it": 0.07,
+        "ik": 0.07
+      }
+    },
+    {
+      "firma_adi": "Trakya Cam",
+      "firma_tipi": "Buyuk Olcekli",
+      "aciklama": "Duz cam ureticisi, Sisecam grubu uyesi",
+      "yillik_uretim_butcesi": 420000000,
+      "fire_orani": 0.05,
+      "calisan_sayisi": 8500,
+      "yillik_ciro": 2100000000,
+      "pazar_payi": 0.22,
+      "birim_maliyet_ton": 3500,
+      "kapasite_kullanim": 0.85,
+      "arge_oran": 0.020,
+      "fabrika_sayisi": 5,
+      "departman_dagilim": {
+        "uretim": 0.52,
+        "bakim": 0.16,
+        "kalite": 0.09,
+        "lojistik": 0.11,
+        "it": 0.06,
+        "ik": 0.06
+      }
+    },
+    {
+      "firma_adi": "Korfez Cam",
+      "firma_tipi": "Orta Olcekli",
+      "aciklama": "Orta olcekli ozel sektor cam ureticisi",
+      "yillik_uretim_butcesi": 95000000,
+      "fire_orani": 0.08,
+      "calisan_sayisi": 1800,
+      "yillik_ciro": 480000000,
+      "pazar_payi": 0.06,
+      "birim_maliyet_ton": 4100,
+      "kapasite_kullanim": 0.78,
+      "arge_oran": 0.012,
+      "fabrika_sayisi": 2,
+      "departman_dagilim": {
+        "uretim": 0.55,
+        "bakim": 0.17,
+        "kalite": 0.08,
+        "lojistik": 0.10,
+        "it": 0.05,
+        "ik": 0.05
+      }
+    },
+    {
+      "firma_adi": "Anadolu Cam",
+      "firma_tipi": "Orta Olcekli",
+      "aciklama": "Ambalaj cami ve sise ureticisi",
+      "yillik_uretim_butcesi": 130000000,
+      "fire_orani": 0.07,
+      "calisan_sayisi": 2500,
+      "yillik_ciro": 650000000,
+      "pazar_payi": 0.08,
+      "birim_maliyet_ton": 3800,
+      "kapasite_kullanim": 0.82,
+      "arge_oran": 0.015,
+      "fabrika_sayisi": 3,
+      "departman_dagilim": {
+        "uretim": 0.53,
+        "bakim": 0.15,
+        "kalite": 0.11,
+        "lojistik": 0.11,
+        "it": 0.05,
+        "ik": 0.05
+      }
+    }
+  ],
+  "yorglass_sabitler": {
+    "calisan_sayisi": 1200,
+    "yillik_ciro": 350000000,
+    "pazar_payi": 0.04,
+    "birim_maliyet_ton": 4500,
+    "kapasite_kullanim": 0.75,
+    "arge_oran": 0.010,
+    "fabrika_sayisi": 4
+  }
+}

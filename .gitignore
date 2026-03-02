@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+sample_data/*.db.old
+.streamlit/secrets.toml
+.venv/
+.claude/
+.idea/
+nul
